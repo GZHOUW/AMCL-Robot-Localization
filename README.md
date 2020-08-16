@@ -2,7 +2,7 @@
 
 A demonstration of the Adaptive Monte Carlo Localization (AMCL) algorithm performing robot localization within a pre-mapped environment. A simple two-wheeled robot uses a Hokuyo laser range finder to detect its surroundings, and compares this to a 'ground-truth' map to localize it's position. The robot is built using the ROS framework and simulated using the Gazebo simulator.
 
-## Getting Started
+## Setup Repo
 #### Clone repo into catkin workspace:
 ```
 $ git clone git@github.com:GZHOUW/WhereAmI
