@@ -38,4 +38,8 @@ $ rosrun teleop_twist_keyboard teleop_twist_keyboard.py
 With this terminal highlighted, the robot can now be driven within Gazebo (see prompts for key bindings). As the robot moves, the particle swarm shown in RViz will update to track the robot position, which should converge over a number of steps to narrow down and track the true position.
 
 ## Demo:
-![](images/1.png)
+1. Initializing
+![](images/1.jpg)
+
+2. Converged
+![](images/2.jpg)
