@@ -5,7 +5,7 @@ A demonstration of the Adaptive Monte Carlo Localization (AMCL) algorithm perfor
 ## Setup Repo
 #### Clone repo into catkin workspace:
 ```
-$ git clone git@github.com:GZHOUW/AMCL-Robot-Locolization
+$ git clone git@github.com:GZHOUW/AMCL-Robot-Localization
 Place the repo in workspace/catkin_ws/src
 
 $ cd workspace/catkin_ws/
