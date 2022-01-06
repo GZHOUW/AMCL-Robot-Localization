@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+# BEFORE RUNNING THIS FILE, RUN robot_start.launch
+
 import math
 import threading
 from dataclasses import dataclass
@@ -230,26 +232,20 @@ class StateMachineNode(hm.HelloNode):
             StateMachine.add(
                 "GRASP",
                 GraspCupState(self),
-                transitions={"succeeded": "succeeded"},
-            )
-            '''
-            StateMachine.add(
-                "GRASP",
-                MagnetState(self),
-                transitions={
-                    "succeeded": "POST_GRASP",
-                },
-                remapping={
-                    "target": "target",
-                    "target_frame": "target_frame",
-                },
+                transitions={"succeeded": "LID"},
             )
             
             StateMachine.add(
-                "POST_GRASP",
-                PostMagnetState(self),
+                "LID",
+                OpenLidState(self),
+                transitions={"succeeded": "POD"},
+            )
+            
+            StateMachine.add(
+                "POD",
+                InsertPodState(self),
                 transitions={"succeeded": "succeeded"},
-            )'''
+            )
         return sm
 
     def main(self):
