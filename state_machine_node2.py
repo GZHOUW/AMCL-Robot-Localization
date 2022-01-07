@@ -227,18 +227,25 @@ class StateMachineNode(hm.HelloNode):
                     "target_frame": "target_frame",
                 },
             )
+            
+            
             StateMachine.add(
                 "GRASP",
                 GraspCupState(self),
                 transitions={"succeeded": "OLID"},
             )
-
+            
             StateMachine.add(
                 "OLID",
                 OpenLidState(self),
                 transitions={"succeeded": "POD"},
             )
-
+            StateMachine.add(
+                "POD",
+                InsertPodState(self),
+                transitions={"succeeded": "succeeded"},
+            )
+            '''
             StateMachine.add(
                 "POD",
                 InsertPodState(self),
@@ -256,7 +263,7 @@ class StateMachineNode(hm.HelloNode):
                 PushButtonState(self),
                 transitions={"succeeded": "succeeded"},
             )
-
+        '''
         return sm
 
     def main(self):
