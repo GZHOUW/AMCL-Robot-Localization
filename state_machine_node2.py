@@ -30,7 +30,6 @@ from smach_ros import (
     IntrospectionServer,
 )
 
-
 import hello_helpers.hello_misc as hm
 import stretch_funmap.navigate as nv
 import stretch_funmap.manipulation_planning as mp
@@ -38,21 +37,20 @@ import stretch_funmap.manipulation_planning as mp
 from sp_core.custom_states import *
 from sp_msgs.srv import Order, OrderRequest, OrderResponse
 
-
 SHELF_GOAL_M = ([0.0, 0.1, 0.0], 0.0)
 WORKSTATION_GOAL_M = ([1.3, 2.4, 0.0], 1.57)
 
 
 class StateMachineNode(hm.HelloNode):
     def __init__(self):
-        
+
         hm.HelloNode.__init__(self)
-        
+
         self.rate = 10.0
         self.joint_states = None
         self.joint_states_lock = threading.Lock()
         self.move_base = nv.MoveBase(self)
-        self.wait_for_first_pointcloud=False
+        self.wait_for_first_pointcloud = False
         self.wrist_position = None
         self.lift_position = None
 
@@ -218,7 +216,7 @@ class StateMachineNode(hm.HelloNode):
                 },
                 remapping={"detected_marker_id": "detected_marker_id"},
             )
-            
+
             StateMachine.add(
                 "DETECT",
                 DetectState(self),
@@ -232,20 +230,33 @@ class StateMachineNode(hm.HelloNode):
             StateMachine.add(
                 "GRASP",
                 GraspCupState(self),
-                transitions={"succeeded": "LID"},
+                transitions={"succeeded": "OLID"},
             )
-            
+
             StateMachine.add(
-                "LID",
+                "OLID",
                 OpenLidState(self),
                 transitions={"succeeded": "POD"},
             )
-            
+
             StateMachine.add(
                 "POD",
                 InsertPodState(self),
+                transitions={"succeeded": "CLID"},
+            )
+
+            StateMachine.add(
+                "CLID",
+                CloseLidState(self),
+                transitions={"succeeded": "BUTTON"},
+            )
+
+            StateMachine.add(
+                "BUTTON",
+                PushButtonState(self),
                 transitions={"succeeded": "succeeded"},
             )
+
         return sm
 
     def main(self):
@@ -276,9 +287,6 @@ class StateMachineNode(hm.HelloNode):
 
         sis = IntrospectionServer("state_machine", sm, "/state_machine")
         sis.start()
-
-        # if self.is_start:
-        #     self.is_start = False
 
         # Execute SMACH plan
         outcome = sm.execute()
