@@ -313,12 +313,12 @@ class GraspCupState(smach.State):
         pose = {"joint_wrist_yaw": 0.0}
         self.node.move_to_pose(pose)
 
-        # MOve base so that the robot aligns with the coffee machine
+        # Align robot base with target
         target = userdata.target
         target_frame = userdata.target_frame
         grasp_center_frame = "link_grasp_center"
         base_frame = "base_link"
-        d_x = -0.25
+        
 
         target_to_base_mat = self.node.lookup_transform_mat(
             base_frame,
@@ -340,22 +340,21 @@ class GraspCupState(smach.State):
         grasp_center_in_base_frame = grasp_to_base_mat[:3, 3]
         translation = grasp_target_in_base_frame - grasp_center_in_base_frame
 
-        # Align robot base with target
         self.node.move_base.forward(translation[0], detect_obstacles=False)
 
         gripper_close = -0.07
         gripper_open = 0.07
-        y_cup = 0.5
-        z_cup0 = 0.65  # before lift, need test
-        z_cup1 = self.node.lift_position + 0.07  # after lift
-        x_cup_machine = 0.3
+        y_cup = 0.40
+        z_cup1 = 0.82 # after lift
+        x_cup_machine = 0.28
+        x_target_cup = -0.23
 
         # open gripper
         pose = {'gripper_aperture': gripper_open}
         self.node.move_to_pose(pose)
 
         # move in -x to the cup
-        self.node.move_base.forward(d_x, detect_obstacles=False)
+        self.node.move_base.forward(x_target_cup, detect_obstacles=False)
 
         # extend arm
         pose = {"wrist_extension": y_cup}
@@ -393,29 +392,21 @@ class OpenLidState(smach.State):
     def execute(self, userdata):
         rospy.sleep(1.0)
 
-        arm_extend = 0.5
-        arm_retract = 0.3
-        z0 = 0.8  # before lift
-        z1 = 1.05  # after lift
+        y_lid = 0.376
+        z_lid = 1.05  # after lift
 
         # initial position
-        pose = {"wrist_extension": 0.3}
+        pose = {"wrist_extension": y_lid}
         self.node.move_to_pose(pose)
 
-        pose = {"joint_lift": z0}
-        self.node.move_to_pose(pose)
-
-        # extend arm
-        pose = {"wrist_extension": arm_extend}
+        # close gripper
+        pose = {'gripper_aperture': 0.0}
         self.node.move_to_pose(pose)
 
         # lift arm (open lid)
-        pose = {"joint_lift": z1}
+        pose = {"joint_lift": z_lid}
         self.node.move_to_pose(pose)
-
-        # retract arm
-        pose = {"wrist_extension": arm_retract}
-        self.node.move_to_pose(pose)
+        
         rospy.sleep(1.0)
         return "succeeded"
 
@@ -425,27 +416,57 @@ class InsertPodState(smach.State):
         smach.State.__init__(
             self,
             outcomes=["succeeded"],
+            input_keys=["target", "target_frame"],
         )
         self.node = node
 
     def execute(self, userdata):
-        x_pod = 0.2
-        y_pod = 0.5
-        z_pod = 0.65
+        # Align robot base with target
+        target = userdata.target
+        target_frame = userdata.target_frame
+        grasp_center_frame = "link_grasp_center"
+        base_frame = "base_link"
+        
 
-        y_slot = 0.5
-        z_slot = 0.9
+        target_to_base_mat = self.node.lookup_transform_mat(
+            base_frame,
+            target_frame,
+        )
+
+        grasp_to_base_mat = self.node.lookup_transform_mat(
+            base_frame,
+            grasp_center_frame,
+        )
+
+        grasp_target = np.array([0.0, 0.0, 0.0, 1.0])
+        grasp_target[:3] = target
+
+        # target in base frame
+        grasp_target_in_base_frame = np.matmul(
+            target_to_base_mat, grasp_target
+        )[:3]
+        grasp_center_in_base_frame = grasp_to_base_mat[:3, 3]
+        translation = grasp_target_in_base_frame - grasp_center_in_base_frame
+
+        self.node.move_base.forward(translation[0], detect_obstacles=False)
+
+        x_pod = 0.3
+        z_pod = 0.73
+
+        z_slot = 0.97
         gripper_close = -0.07
         gripper_open = 0.07
 
         rospy.sleep(1.0)
+        pose = {"joint_lift": z_slot}
+        self.node.move_to_pose(pose)
+
+        # open gripper
+        pose = {'gripper_aperture': gripper_open}
+        self.node.move_to_pose(pose)
 
         # move in x to the pod
         self.node.move_base.forward(x_pod, detect_obstacles=False)
-
-        # move in y to the pod
-        pose = {"wrist_extension": y_pod}
-        self.node.move_to_pose(pose)
 
         # move in z to the pod
         pose = {"joint_lift": z_pod}
@@ -455,30 +476,17 @@ class InsertPodState(smach.State):
         pose = {'gripper_aperture': gripper_close}
         self.node.move_to_pose(pose)
 
-        # ready to insert
-        pose = {"wrist_extension": 0.3}
-        self.node.move_to_pose(pose)
-
+        # move back up
         pose = {"joint_lift": z_slot}
         self.node.move_to_pose(pose)
 
         # move in -x to the machine
         self.node.move_base.forward(
-            -x_pod, detect_obstacles=False
+            -0.22, detect_obstacles=False
         )
-
-        # insert
-        pose = {"wrist_extension": y_slot}
-        self.node.move_to_pose(pose)
 
         # open gripper
         pose = {'gripper_aperture': gripper_open}
-        self.node.move_to_pose(pose)
-
-        rospy.sleep(1.0)
-
-        # retract arm
-        pose = {"wrist_extension": 0.3}
         self.node.move_to_pose(pose)
 
         rospy.sleep(1.0)
