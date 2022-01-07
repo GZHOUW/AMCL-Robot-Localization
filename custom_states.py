@@ -1,5 +1,4 @@
-
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 
 import math
 import numpy as np
@@ -21,6 +20,7 @@ import stretch_funmap.navigate as nv
 import stretch_funmap.mapping as ma
 import stretch_funmap.navigation_planning as na
 import stretch_funmap.manipulation_planning as mp
+
 
 # def get_robot_pose(self):
 #     stamped_transform = self.tf_buffer.lookup_transform(
@@ -220,7 +220,7 @@ class PreDetectState(smach.State):
             # print(self.node.wrist_position)
             pose = {
                 "wrist_extension": self.node.wrist_position
-                + (translation[2] - camera_tolerance[2])
+                                   + (translation[2] - camera_tolerance[2])
             }
             self.node.move_to_pose(pose)
         if np.abs(translation[0]) >= camera_tolerance[0]:
@@ -257,7 +257,6 @@ class DetectState(smach.State):
         )
         rospy.sleep(2.0)
 
-        
         cloud_msg = rospy.wait_for_message(
             "/wrist_camera/depth/color/points", PointCloud2
         )
@@ -276,9 +275,9 @@ class DetectState(smach.State):
         dxyz = xyz - marker_coord.reshape(1, 3)
         for p in dxyz:
             if (
-                p[2] < 0
-                and (p[0] > 0 and p[0] < detect_box[0])
-                and (p[1] > 0 and p[1] < detect_box[1])
+                    p[2] < 0
+                    and (p[0] > 0 and p[0] < detect_box[0])
+                    and (p[1] > 0 and p[1] < detect_box[1])
             ):
                 cloud_mask.append(True)
             else:
@@ -299,6 +298,7 @@ class DetectState(smach.State):
         # set wrist cam to default
         rospy.set_param("/wrist_camera/stereo_module/visual_preset", "1")
         return "succeeded"
+
 
 class GraspCupState(smach.State):
     def __init__(self, node):
@@ -332,50 +332,55 @@ class GraspCupState(smach.State):
 
         grasp_target = np.array([0.0, 0.0, 0.0, 1.0])
         grasp_target[:3] = target
+
         # target in base frame
         grasp_target_in_base_frame = np.matmul(
             target_to_base_mat, grasp_target
         )[:3]
         grasp_center_in_base_frame = grasp_to_base_mat[:3, 3]
         translation = grasp_target_in_base_frame - grasp_center_in_base_frame
-        self.node.move_base.forward(
-            translation[0], detect_obstacles=False
-        )
-         # open gripper
-        pose = {'gripper_aperture': 0.07}
+
+        # Align robot base with target
+        self.node.move_base.forward(translation[0], detect_obstacles=False)
+
+        gripper_close = -0.07
+        gripper_open = 0.07
+        y_cup = 0.5
+        z_cup0 = 0.65  # before lift, need test
+        z_cup1 = self.node.lift_position + 0.07  # after lift
+        x_cup_machine = 0.3
+
+        # open gripper
+        pose = {'gripper_aperture': gripper_open}
         self.node.move_to_pose(pose)
 
         # move in -x to the cup
-        self.node.move_base.forward(
-            d_x, detect_obstacles=False
-        )
+        self.node.move_base.forward(d_x, detect_obstacles=False)
 
         # extend arm
-        pose = {"wrist_extension": 0.5}
+        pose = {"wrist_extension": y_cup}
         self.node.move_to_pose(pose)
 
         # close gripper
-        pose = {'gripper_aperture': -0.07}
+        pose = {'gripper_aperture': gripper_close}
         self.node.move_to_pose(pose)
         rospy.sleep(1.0)
 
         # lift cup
         # move z / lift
-        pose = {"joint_lift": self.node.lift_position + 0.07}
+        pose = {"joint_lift": z_cup1}
         self.node.move_to_pose(pose)
 
-
         # move in -x to the machine
-        self.node.move_base.forward(
-            0.3, detect_obstacles=False
-        )
+        self.node.move_base.forward(x_cup_machine, detect_obstacles=False)
 
         # open gripper
-        pose = {'gripper_aperture': 0.07}
+        pose = {'gripper_aperture': gripper_open}
         self.node.move_to_pose(pose)
 
         rospy.sleep(2.0)
         return "succeeded"
+
 
 class OpenLidState(smach.State):
     def __init__(self, node):
@@ -387,11 +392,11 @@ class OpenLidState(smach.State):
 
     def execute(self, userdata):
         rospy.sleep(1.0)
-       
+
         arm_extend = 0.5
         arm_retract = 0.3
         z0 = 0.8  # before lift
-        z1 = 1.05 # after lift
+        z1 = 1.05  # after lift
 
         # initial position
         pose = {"wrist_extension": 0.3}
@@ -427,7 +432,7 @@ class InsertPodState(smach.State):
         x_pod = 0.2
         y_pod = 0.5
         z_pod = 0.65
-    
+
         y_slot = 0.5
         z_slot = 0.9
         gripper_close = -0.07
@@ -457,7 +462,6 @@ class InsertPodState(smach.State):
         pose = {"joint_lift": z_slot}
         self.node.move_to_pose(pose)
 
-
         # move in -x to the machine
         self.node.move_base.forward(
             -x_pod, detect_obstacles=False
@@ -476,9 +480,10 @@ class InsertPodState(smach.State):
         # retract arm
         pose = {"wrist_extension": 0.3}
         self.node.move_to_pose(pose)
-        
+
         rospy.sleep(1.0)
         return "succeeded"
+
 
 class CloseLidState(smach.State):
     def __init__(self, node):
@@ -492,7 +497,7 @@ class CloseLidState(smach.State):
         x_pod = 0.2
         y_pod = 0.5
         z_pod = 0.65
-    
+
         y_slot = 0.5
         z_slot = 0.9
         gripper_close = -0.07
@@ -505,9 +510,10 @@ class CloseLidState(smach.State):
         # close the lid
 
         # retract
-        
+
         rospy.sleep(1.0)
         return "succeeded"
+
 
 class PushButtonState(smach.State):
     def __init__(self, node):
@@ -521,7 +527,6 @@ class PushButtonState(smach.State):
         # ready to push (init pos)
 
         # push
-
 
         rospy.sleep(1.0)
         return "succeeded"
