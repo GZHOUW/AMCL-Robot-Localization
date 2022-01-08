@@ -2,26 +2,17 @@
 
 # BEFORE RUNNING THIS FILE, RUN robot_start.launch
 
-import math
 import threading
-from dataclasses import dataclass
-import numpy as np
-import ros_numpy as rn
 
 import rospy
-import tf2_ros as tf
 import tf.transformations as tr
 
 from std_srvs.srv import Trigger, TriggerRequest
 from std_msgs.msg import Int16MultiArray
 from sensor_msgs.msg import JointState
-from control_msgs.msg import FollowJointTrajectoryGoal
-from trajectory_msgs.msg import JointTrajectoryPoint
 from move_base_msgs.msg import MoveBaseAction, MoveBaseGoal
 from visualization_msgs.msg import Marker, MarkerArray
 
-import smach
-import smach_ros
 from smach import State, StateMachine, Sequence
 from smach_ros import (
     ServiceState,
@@ -32,7 +23,6 @@ from smach_ros import (
 
 import hello_helpers.hello_misc as hm
 import stretch_funmap.navigate as nv
-import stretch_funmap.manipulation_planning as mp
 
 from sp_core.custom_states import *
 from sp_msgs.srv import Order, OrderRequest, OrderResponse
@@ -227,14 +217,13 @@ class StateMachineNode(hm.HelloNode):
                     "target_frame": "target_frame",
                 },
             )
-            
-            
+
             StateMachine.add(
                 "GRASP",
                 GraspCupState(self),
                 transitions={"succeeded": "OLID"},
             )
-            
+
             StateMachine.add(
                 "OLID",
                 OpenLidState(self),
