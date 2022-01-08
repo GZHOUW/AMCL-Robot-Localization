@@ -229,18 +229,13 @@ class StateMachineNode(hm.HelloNode):
                 OpenLidState(self),
                 transitions={"succeeded": "POD"},
             )
-            StateMachine.add(
-                "POD",
-                InsertPodState(self),
-                transitions={"succeeded": "succeeded"},
-            )
-            '''
+            
             StateMachine.add(
                 "POD",
                 InsertPodState(self),
                 transitions={"succeeded": "CLID"},
             )
-
+  
             StateMachine.add(
                 "CLID",
                 CloseLidState(self),
@@ -252,7 +247,7 @@ class StateMachineNode(hm.HelloNode):
                 PushButtonState(self),
                 transitions={"succeeded": "succeeded"},
             )
-        '''
+        
         return sm
 
     def main(self):
