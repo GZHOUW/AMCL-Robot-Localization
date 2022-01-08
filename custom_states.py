@@ -1,6 +1,5 @@
 # !/usr/bin/env python3
 
-import math
 import numpy as np
 import ros_numpy as rnp
 
@@ -9,31 +8,11 @@ from fiducial_msgs.msg import FiducialTransformArray, FiducialTransform
 from sensor_msgs.msg import Image, PointCloud2
 from std_srvs.srv import Trigger, TriggerRequest
 
-import cv2
-from cv_bridge import CvBridge, CvBridgeError
-
 import smach
-import smach_ros
 
 import hello_helpers.hello_misc as hm
-import stretch_funmap.navigate as nv
-import stretch_funmap.mapping as ma
-import stretch_funmap.navigation_planning as na
-import stretch_funmap.manipulation_planning as mp
 
-
-# def get_robot_pose(self):
-#     stamped_transform = self.tf_buffer.lookup_transform(
-#         "/map", "/base_link", rospy.Time(0), rospy.Duration(0.1)
-#     )
-#     trans_mat = rnp.numpify(stamped_transform)
-#     translation = trans_mat[:3, 3]
-#     rotation = tr.euler_from_matrix(trans_mat)
-#     return translation, rotation
 def prepare_gripper(node):
-    # pose = {"wrist_extension": 0.1}
-    # node.move_to_pose(pose)
-
     # gripper backwards stow
     pose = {"joint_wrist_yaw": 3.3}
 
@@ -318,7 +297,6 @@ class GraspCupState(smach.State):
         target_frame = userdata.target_frame
         grasp_center_frame = "link_grasp_center"
         base_frame = "base_link"
-        
 
         target_to_base_mat = self.node.lookup_transform_mat(
             base_frame,
@@ -345,7 +323,7 @@ class GraspCupState(smach.State):
         gripper_close = -0.07
         gripper_open = 0.07
         y_cup = 0.40
-        z_cup1 = 0.82 # after lift
+        z_cup1 = 0.82  # after lift
         x_cup_machine = 0.28
         x_target_cup = -0.23
 
@@ -406,7 +384,7 @@ class OpenLidState(smach.State):
         # lift arm (open lid)
         pose = {"joint_lift": z_lid}
         self.node.move_to_pose(pose)
-        
+
         rospy.sleep(1.0)
         return "succeeded"
 
@@ -426,7 +404,6 @@ class InsertPodState(smach.State):
         target_frame = userdata.target_frame
         grasp_center_frame = "link_grasp_center"
         base_frame = "base_link"
-        
 
         target_to_base_mat = self.node.lookup_transform_mat(
             base_frame,
@@ -498,6 +475,7 @@ class CloseLidState(smach.State):
         smach.State.__init__(
             self,
             outcomes=["succeeded"],
+            input_keys=["target", "target_frame"],
         )
         self.node = node
 
@@ -513,11 +491,51 @@ class CloseLidState(smach.State):
 
         rospy.sleep(1.0)
 
+        # align with target
+        target = userdata.target
+        target_frame = userdata.target_frame
+        grasp_center_frame = "link_grasp_center"
+        base_frame = "base_link"
+
+        target_to_base_mat = self.node.lookup_transform_mat(
+            base_frame,
+            target_frame,
+        )
+
+        grasp_to_base_mat = self.node.lookup_transform_mat(
+            base_frame,
+            grasp_center_frame,
+        )
+
+        grasp_target = np.array([0.0, 0.0, 0.0, 1.0])
+        grasp_target[:3] = target
+
+        # target in base frame
+        grasp_target_in_base_frame = np.matmul(
+            target_to_base_mat, grasp_target
+        )[:3]
+        grasp_center_in_base_frame = grasp_to_base_mat[:3, 3]
+        translation = grasp_target_in_base_frame - grasp_center_in_base_frame
+
+        self.node.move_base.forward(translation[0]+0.1, detect_obstacles=False)
+
         # go above the lid
+        pose = {"wrist_extension": 0.35}
+        self.node.move_to_pose(pose)
+
+        pose = {"joint_lift": 1.05}
+        self.node.move_to_pose(pose)
 
         # close the lid
+        pose = {"wrist_extension": 0.376}
+        self.node.move_to_pose(pose)
+
+        pose = {"joint_lift": 0.97}
+        self.node.move_to_pose(pose)
 
         # retract
+        pose = {"wrist_extension": 0.3}
+        self.node.move_to_pose(pose)
 
         rospy.sleep(1.0)
         return "succeeded"
@@ -528,13 +546,49 @@ class PushButtonState(smach.State):
         smach.State.__init__(
             self,
             outcomes=["succeeded"],
+            input_keys=["target", "target_frame"],
         )
         self.node = node
 
     def execute(self, userdata):
+        # align with target
+        target = userdata.target
+        target_frame = userdata.target_frame
+        grasp_center_frame = "link_grasp_center"
+        base_frame = "base_link"
+
+        target_to_base_mat = self.node.lookup_transform_mat(
+            base_frame,
+            target_frame,
+        )
+
+        grasp_to_base_mat = self.node.lookup_transform_mat(
+            base_frame,
+            grasp_center_frame,
+        )
+
+        grasp_target = np.array([0.0, 0.0, 0.0, 1.0])
+        grasp_target[:3] = target
+
+        # target in base frame
+        grasp_target_in_base_frame = np.matmul(
+            target_to_base_mat, grasp_target
+        )[:3]
+        grasp_center_in_base_frame = grasp_to_base_mat[:3, 3]
+        translation = grasp_target_in_base_frame - grasp_center_in_base_frame
+
+        self.node.move_base.forward(translation[0], detect_obstacles=False)
+
         # ready to push (init pos)
+        pose = {"joint_lift": 1.05}
+        self.node.move_to_pose(pose)
 
         # push
+        pose = {"wrist_extension": 0.35}
+        self.node.move_to_pose(pose)
+
+        pose = {"joint_lift": 0.4}
+        self.node.move_to_pose(pose)
 
         rospy.sleep(1.0)
         return "succeeded"
