@@ -320,10 +320,10 @@ class GraspCupState(smach.State):
 
         self.node.move_base.forward(translation[0], detect_obstacles=False)
 
-        gripper_close = -0.07
+        gripper_close = -0.03
         gripper_open = 0.07
-        y_cup = 0.41
-        z_cup1 = 0.82  # after lift
+        y_cup = 0.40
+        z_cup1 = 0.78  # after lift
         x_cup_machine = 0.28
         x_target_cup = -0.23
 
@@ -347,15 +347,26 @@ class GraspCupState(smach.State):
         # move z / lift
         pose = {"joint_lift": z_cup1}
         self.node.move_to_pose(pose)
+        rospy.sleep(1.0)
 
         # move in -x to the machine
         self.node.move_base.forward(x_cup_machine, detect_obstacles=False)
+        rospy.sleep(1.0)
+
+        # go in a little bit
+        pose = {"wrist_extension": y_cup+0.02}
+        self.node.move_to_pose(pose)
+        rospy.sleep(1.0)
 
         # open gripper
         pose = {'gripper_aperture': gripper_open}
         self.node.move_to_pose(pose)
+        rospy.sleep(1.0)
 
-        rospy.sleep(2.0)
+        pose = {"wrist_extension": y_cup}
+        self.node.move_to_pose(pose)
+
+        rospy.sleep(1.0)
         return "succeeded"
 
 
@@ -371,11 +382,6 @@ class OpenLidState(smach.State):
         rospy.sleep(1.0)
 
         z_lid = 1.05  # after lift
-
-        # close gripper
-        pose = {'gripper_aperture': 0.01}
-        self.node.move_to_pose(pose)
-
         # lift arm (open lid)
         pose = {"joint_lift": z_lid}
         self.node.move_to_pose(pose)
@@ -428,13 +434,12 @@ class InsertPodState(smach.State):
         self.node.move_base.forward(translation[0], detect_obstacles=False)
 
         x_pod = 0.3
-        z_pod = 0.74
+        z_pod = 0.75
 
-        z_slot = 0.97
-        gripper_close = -0.07
-        gripper_open = 0.07
+        z_slot = 0.95
+        gripper_close = 0.0
+        gripper_open = 0.05
 
-        
         pose = {"joint_lift": z_slot}
         self.node.move_to_pose(pose)
 
@@ -450,7 +455,7 @@ class InsertPodState(smach.State):
         self.node.move_to_pose(pose)
 
         # move in y to the pod
-        pose = {"wrist_extension": 0.4}
+        pose = {"wrist_extension": 0.41}
         self.node.move_to_pose(pose)
         rospy.sleep(1.0)
 
@@ -466,13 +471,14 @@ class InsertPodState(smach.State):
 
         # move in -x to the machine
         self.node.move_base.forward(
-            -0.21, detect_obstacles=False
+            -0.215, detect_obstacles=False
         )
 
-        # move to slot
-        pose = {"wrist_extension": 0.42}
+        # move to slot (+y and -z at the same time)
+        pose = {"wrist_extension": 0.415}
         self.node.move_to_pose(pose)
-        rospy.sleep(1.0)
+        pose = {"joint_lift": 0.94}
+        self.node.move_to_pose(pose)
 
         # open gripper
         pose = {'gripper_aperture': gripper_open}
@@ -531,7 +537,7 @@ class CloseLidState(smach.State):
         self.node.move_to_pose(pose)
         rospy.sleep(1.0)
 
-        pose = {"wrist_extension": 0.42}
+        pose = {"wrist_extension": 0.41}
         self.node.move_to_pose(pose)
         rospy.sleep(1.0)
 
@@ -588,14 +594,14 @@ class PushButtonState(smach.State):
         grasp_center_in_base_frame = grasp_to_base_mat[:3, 3]
         translation = grasp_target_in_base_frame - grasp_center_in_base_frame
 
-        self.node.move_base.forward(translation[0]-0.02, detect_obstacles=False)
+        self.node.move_base.forward(translation[0]+0.01, detect_obstacles=False)
 
         # ready to push (init pos)
-        pose = {"joint_lift": 0.95}
+        pose = {"joint_lift": 0.98}
         self.node.move_to_pose(pose)
 
         # push
-        pose = {"wrist_extension": 0.49}
+        pose = {"wrist_extension": 0.50}
         self.node.move_to_pose(pose)
 
         rospy.sleep(1.0)
